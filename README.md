@@ -28,16 +28,23 @@ This library is built for react native to work with Portable Zebra Bluetooth Pri
   - Add `new RNMyFancyLibraryPackage()` to the list returned by the `getPackages()` method
 2. Append the following lines to `android/settings.gradle`:
   	```
-  	include ':react-native-zebra-bt-printer'
-  	project(':react-native-zebra-bt-printer').projectDir = new File(rootProject.projectDir, 	'../node_modules/react-native-zebra-bt-printer/android')
+    include ':react-native-zebra-bt-printer'
+    project(':react-native-zebra-bt-printer').projectDir = new File(rootProject.projectDir, 	'../node_modules/react-native-zebra-bt-printer/android')
   	```
 3. Insert the following lines inside the dependencies block in `android/app/build.gradle`:
   	```
-      compile project(':react-native-zebra-bt-printer')
+    compile project(':react-native-zebra-bt-printer')
   	```
 
 
 ## Usage
+
+API:
+
+| Method        | Description   |
+| ------------- | ------------- |
+| `printLabel(printerSerial, userCommand)`  | Prints data on zebra bt printer. `userCommand` is presented in CPCL printer programming language. Returns a promise with result  |
+| `checkPrinterStatus(printerSerial)`  | Checks if printer is ready to print. Returns a promise with result  |
 
 You must pair your printer first with the device.
 
@@ -46,9 +53,9 @@ iOS requires the printer serial#.
 Android requires the MAC ADDRESS.
 
 ```javascript
-import ZebraBTPrinter from 'react-native-zebra-bt-printer';
+import ZebraBTPrinter from 'react-native-zebra-bt';
 
-const printLabel = async (userPrintCount, userText1, userText2, userText3) => {
+const printLabel = async () => {
 
   console.log('printLabel APP');
 
@@ -57,40 +64,33 @@ const printLabel = async (userPrintCount, userText1, userText2, userText3) => {
     return false;
   }
 
-  try {
 
-    //Store your printer serial or mac, ios needs serial, android needs mac
-    const printerSerial = await AsyncStorage.getItem('printerSerial');
+  //Store your printer serial or mac, ios needs serial, android needs mac
+  const printerSerial = await AsyncStorage.getItem('printerSerial');
 
-    //check if printer is set
-    if (printerSerial !== null && printerSerial !== '') {
+  //check if printer is set
+  if (printerSerial !== null && printerSerial !== '') {
 
-      ZebraBTPrinter.printLabel(printerSerial, userPrintCount, userText1, userText2, userText3).then((result) => {
-        
-        console.log(result);
+    const lineSeparator = '\r\n';
+    // userCommand is presented in CPCL printer programming language
+    // full CPCL programming guide can be found here https://www.zebra.com/content/dam/zebra/manuals/en-us/printer/cpcl-link-os-pg-en.pdf
+    const userCommand = `0 200 200 210 1${lineSeparator}TEXT 4 0 30 40 This is a CPCL test.${lineSeparator}FORM${lineSeparator}PRINT${lineSeparator}`
 
-        if (result === false) {
-          Alert.alert('Print failed, please check printer connection');
-        }
+    ZebraBTPrinter.printLabel(printerSerial, userCommand).then((result) => {
 
-      })
-      .catch((err) => console.log(err.message));
+      if (result === true) {
+        Alert.alert('Successfully printed');
+      } else {
+        Alert.alert('Print failed, please check printer connection');
+      }
 
-    } else {
+    })
+    .catch((err) => console.log(err.message));
 
-      Alert.alert('Print failed, no printer setup found');
+  } else {
 
-    }
+    Alert.alert('Print failed, no printer setup found');
 
-  } catch (error) {
-    // Error retrieving data
-    console.log('Async getItem failed');
   }
-
 }
-
-// TODO: What to do with the module?
-RCTZebraBTPrinter;
 ```
-
-See Example. Remember to npm i in example

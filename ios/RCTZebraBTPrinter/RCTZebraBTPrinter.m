@@ -15,6 +15,13 @@
 #import "MfiBtPrinterConnection.h"
 
 
+@interface RCTZebraBTPrinter ()
+
+
+
+@end
+
+
 @implementation RCTZebraBTPrinter
 
 RCT_EXPORT_MODULE();
@@ -29,54 +36,54 @@ RCT_EXPORT_MODULE();
 #pragma mark - Methods available form Javascript
 
 RCT_EXPORT_METHOD(
-    printLabel: (NSString *)userPrinterSerial 
-    userPrintCount:(int)userPrintCount
-    userText1:(NSString *)userText1
-    userText2:(NSString *)userText2
-    userText3:(NSString *)userText3
+    printLabel: (NSString *)userPrinterSerial
+    userCommand:(NSString *)userCommand
     resolve: (RCTPromiseResolveBlock)resolve
     rejector:(RCTPromiseRejectBlock)reject){
-    
+
     //userPrinterSerial = userPrinterSerial;
-    
+
     NSLog(@"IOS >> printLabel triggered");
-    
+
     //NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-    
+
     NSLog(@"IOS >> Connecting");
-    
+
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^ {
-        
+
         id<ZebraPrinterConnection, NSObject> thePrinterConn = [[MfiBtPrinterConnection alloc] initWithSerialNumber:userPrinterSerial];
-        
+
         [((MfiBtPrinterConnection*)thePrinterConn) setTimeToWaitAfterWriteInMilliseconds:30];
-        
+
         BOOL success = [thePrinterConn open];
-        
+
         if(success == YES){
-            
-            NSLog(@"IOS >> Connected %@", userText1);
-            //NSString *zplData = @"^XA^FO20,20^A0N,25,25^FDThis is a ZPL test.^FS^XZ";
-            
-            NSString *testLabel;
-            
-            // offset, dpi, dpi, label height dpi, qty
-            
-            testLabel = [NSString stringWithFormat:@"! 0 200 200 304 %d\r\nTEXT 0 3 10 10 CYC LABEL START\r\nTEXT 0 3 10 40 %@ %@ %@\r\nBARCODE 128 1 1 40 10 80 %@\r\nTEXT 0 3 10 150 CYC LABEL END\r\nFORM\r\nPRINT\r\n", userPrintCount, userText1, userText2, userText3, userText1];
-            
+
+//          NSLog(@"IOS >> Connected %@", userText1);
+
+//          NSString *testLabel = @"^XA^FO100,60^A0N,25,25^FB400,2,10,C,0^FDAlex Kuzmenya. Alex Kuzmenya. long ling 231^FS^XZ";
+
+            NSString *printLabel;
+            // A label file always begins with the “!” character followed by an “x” offset parameter, “x” and “y” axis resolutions, a label length and finally a quantity of labels to print.
+
+            printLabel = [NSString stringWithFormat: @"! %@", userCommand];
+
+//          NSString *testLabel = @"! 0 200 200 210 1\r\nTEXT 4 0 30 40 This is a CPCL test.\r\nFORM\r\nPRINT\r\n";
+
             NSError *error = nil;
+
             // Send the data to printer as a byte array.
-            //NSData *data = [NSData dataWithBytes:[testLabel UTF8String] length:[testLabel length]];
-            //success = success && [thePrinterConn write:[zplData dataUsingEncoding:NSUTF8StringEncoding] error:&error];
-            success = success && [thePrinterConn write:[testLabel dataUsingEncoding:NSUTF8StringEncoding] error:&error];
-            
+            // NSData *data = [NSData dataWithBytes:[testLabel UTF8String] length:[testLabel length]];
+
+            success = success && [thePrinterConn write:[printLabel dataUsingEncoding:NSUTF8StringEncoding] error:&error];
+
             NSLog(@"IOS >> Sending Data");
-            
+
             dispatch_async(dispatch_get_main_queue(), ^{
                 if (success != YES || error != nil) {
-                    
+
                     NSLog(@"IOS >> Failed to send");
-                    
+
                     UIAlertView *errorAlert = [[UIAlertView alloc] initWithTitle:@"Error" message:[error localizedDescription] delegate:nil cancelButtonTitle:@"Ok" otherButtonTitles:nil];
                     [errorAlert show];
                     //[errorAlert release];
@@ -87,82 +94,116 @@ RCT_EXPORT_METHOD(
             //[thePrinterConn release];
             resolve((id)kCFBooleanTrue);
         } else {
-            
+
             NSLog(@"IOS >> Failed to connect");
             resolve((id)kCFBooleanFalse);
-            
+
         }
     });
-    
+
     /*
      id<ZebraPrinterConnection, NSObject> connection = nil;
-     
+
      NSString *printerSerial = @"XXQPJ171800079";
-     
+
      NSLog(@"SERIAL## IS %@", printerSerial);
-     
-     
+
+
      connection = [[MfiBtPrinterConnection alloc] initWithSerialNumber:printerSerial];
-     
+
      [((MfiBtPrinterConnection*)connection) setTimeToWaitAfterWriteInMilliseconds:80];
-     
+
      BOOL didOpen = [connection open];
-     
+
      if(didOpen == YES){
-     
-     
-     
+
+
+
      NSLog(@"IOS >> Connected");
-     
+
      NSLog(@"IOS >> Determining Printer Language...");
-     
+
      NSError *error;
-     
+
      id<ZebraPrinter,NSObject> printer = [ZebraPrinterFactory getInstance:connection error:&error];
-     
+
      PrinterLanguage language = [printer getPrinterControlLanguage];
-     
+
      NSLog(@"IOS >> Printer Language %@",[self getLanguageName:language]);
-     
+
      NSLog(@"IOS >> Sending Data");
-     
-     
+
+
      //Construct msg
      NSString *testLabel;
-     
+
      NSString *userText = @"hahaha";
-     
+
      NSLog(@"USER INPUT ## IS %@", userText);
-     
+
      testLabel = [NSString stringWithFormat:@"! 0 200 200 210 1\r\nTEXT 4 0 30 40 Hello %@\r\nFORM\r\nPRINT\r\n", userText];
-     
+
      NSData *data = [NSData dataWithBytes:[testLabel UTF8String] length:[testLabel length]];
      [connection write:data error:&error];
-     
+
      NSLog(@"%@",error);
-     
+
      //BOOL sentOK = [self printTestLabel:language onConnection:connection withError:&error];
      BOOL sentOK = 1;
-     
+
      if (sentOK == 1) {
      NSLog(@"IOS >> Test Label Sent");
-     
+
      } else {
      NSLog(@"IOS >> Test Label Failed to Print");
-     
+
      }
-     
+
      NSLog(@"IOS >> Disconnecting");
-     
+
      [connection close];
-     
+
      } else {
      NSLog(@"IOS >> Connection not open");
      }
-     
+
      */
-    
+
 }
 
+
+RCT_EXPORT_METHOD(checkPrinterStatus: (NSString *)serialCode
+                            resolver: (RCTPromiseResolveBlock)resolve
+                            rejector: (RCTPromiseRejectBlock)reject) {
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^ {
+        id<ZebraPrinterConnection, NSObject> connection = [[MfiBtPrinterConnection alloc] initWithSerialNumber:serialCode];
+        [((MfiBtPrinterConnection*)connection) setTimeToWaitAfterWriteInMilliseconds:30];
+        if ([connection open]) {
+            NSError *error = nil;
+            id<ZebraPrinter, NSObject> printer = [ZebraPrinterFactory getInstance:connection error:&error];
+            if (error) {
+                NSLog(@"%@", error.localizedDescription);
+                resolve((id)kCFBooleanFalse);
+                [connection close];
+                return;
+            }
+
+            PrinterStatus *status = [printer getCurrentStatus:&error];
+            if (error) {
+                NSLog(@"%@", error.localizedDescription);
+                resolve((id)kCFBooleanFalse);
+                [connection close];
+                return;
+            }
+
+            NSLog(@"Is printer ready to print: %d", (int)status.isReadyToPrint);
+
+            resolve(status.isReadyToPrint ? (id)kCFBooleanTrue : (id)kCFBooleanFalse);
+        } else {
+            NSLog(@"Failed to connect to printer");
+        }
+        [connection close];
+    });
+}
 
 @end
