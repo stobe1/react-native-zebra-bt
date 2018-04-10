@@ -13,7 +13,7 @@
 #import "ZebraPrinter.h"
 #import "ZebraPrinterFactory.h"
 #import "MfiBtPrinterConnection.h"
-
+#import <SGD.h>
 
 @interface RCTZebraBTPrinter ()
 
@@ -177,32 +177,45 @@ RCT_EXPORT_METHOD(checkPrinterStatus: (NSString *)serialCode
                             rejector: (RCTPromiseRejectBlock)reject) {
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^ {
         id<ZebraPrinterConnection, NSObject> connection = [[MfiBtPrinterConnection alloc] initWithSerialNumber:serialCode];
-        [((MfiBtPrinterConnection*)connection) setTimeToWaitAfterWriteInMilliseconds:30];
-        if ([connection open]) {
+        [((MfiBtPrinterConnection*)connection) setTimeToWaitAfterWriteInMilliseconds:80];
+        BOOL success = [connection open];
+        if (success) {
+            NSError *error = nil;
+            [SGD SET:@"device.languages" withValue:@"zpl" andWithPrinterConnection:connection error:&error];
+            [SGD SET:@"ezpl.media_type" withValue:@"continuous" andWithPrinterConnection:connection error:&error];
+            [SGD SET:@"zpl.label_length" withValue:@"200" andWithPrinterConnection:connection error:&error];
+            if (error) {
+                NSLog(@"asssddd %@", error.localizedDescription);
+                resolve((id)kCFBooleanFalse);
+                return;
+            }
+        }
+        if (success) {
             NSError *error = nil;
             id<ZebraPrinter, NSObject> printer = [ZebraPrinterFactory getInstance:connection error:&error];
             if (error) {
                 NSLog(@"%@", error.localizedDescription);
-                resolve((id)kCFBooleanFalse);
                 [connection close];
+                resolve((id)kCFBooleanFalse);
                 return;
             }
 
             PrinterStatus *status = [printer getCurrentStatus:&error];
             if (error) {
-                NSLog(@"%@", error.localizedDescription);
-                resolve((id)kCFBooleanFalse);
+                NSLog(@"wtf %@", error.localizedDescription);
                 [connection close];
+                resolve((id)kCFBooleanFalse);
                 return;
             }
 
             NSLog(@"Is printer ready to print: %d", (int)status.isReadyToPrint);
-
+            [connection close];
             resolve(status.isReadyToPrint ? (id)kCFBooleanTrue : (id)kCFBooleanFalse);
         } else {
+            [connection close];
+            resolve((id)kCFBooleanFalse);
             NSLog(@"Failed to connect to printer");
         }
-        [connection close];
     });
 }
 
