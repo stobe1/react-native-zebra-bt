@@ -183,7 +183,7 @@ RCT_EXPORT_METHOD(checkPrinterStatus: (NSString *)serialCode
             NSError *error = nil;
             [SGD SET:@"device.languages" withValue:@"zpl" andWithPrinterConnection:connection error:&error];
             [SGD SET:@"ezpl.media_type" withValue:@"continuous" andWithPrinterConnection:connection error:&error];
-            [SGD SET:@"zpl.label_length" withValue:@"200" andWithPrinterConnection:connection error:&error];
+            [SGD SET:@"zpl.label_length" withValue:@"100" andWithPrinterConnection:connection error:&error];
             if (error) {
                 NSLog(@"asssddd %@", error.localizedDescription);
                 resolve((id)kCFBooleanFalse);
