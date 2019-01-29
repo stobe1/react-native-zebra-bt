@@ -5,6 +5,8 @@ This library is built for react native to work with Portable Zebra Bluetooth Pri
 
 ## Getting started
 
+`$ npm install git@github.com:stobe1/react-native-zebra-bt.git`
+
 ### Mostly automatic installation
 
 `$ react-native link react-native-zebra-bt-printer`
